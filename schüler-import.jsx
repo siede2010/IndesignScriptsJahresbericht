@@ -23,6 +23,29 @@ function GetSubFolders(theFolder) {
      }
 }
 
+function flattenGroups(groups)
+{
+  var flatGroup = []
+  for(var g in groups)
+  {
+    if (groups[g].groups.length > 0)
+      innerFlat(groups[g].groups)
+    else
+      flatGroup.push(groups[g])
+  }
+  return flatGroup;
+}
+function innerFlat(groups)
+{
+  for(var gr in groups)
+  {
+    if (groups[gr].groups.length > 0)
+      innerFlat(groups[gr].groups)
+    else
+      flatGroup.push(groups[g])
+  }
+}
+
 function readCSV(path)
 {
     var file = File(path);
@@ -94,7 +117,6 @@ if (myDialog.show())
   var objectAmm = 0;
   var pageToDuplicate = doc.pages[selectedPage.editValue-1];
   var usesGroups = isGroupBox.checkedState;
-  alert(usesGroups);
   var allObjects = pageToDuplicate.allPageItems;
   for(var picI in myPics)
   {
@@ -113,7 +135,7 @@ if (myDialog.show())
   {
     if(allObjects[ii] instanceof TextFrame)
     {
-      if(allObjects[ii].label.split('%')[0] =="saying")
+      if(allObjects[ii].label.split('saying').length > 1)
       {
         objectAmm++;
       }
@@ -126,20 +148,35 @@ if (myDialog.show())
   for(var l = 0;l < newPages.length;l++)
   {
     var myPage = newPages[l]
-    var groups = myPage.groups;
+    var groups = flattenGroups(myPage.groups);
     var skipTo = addAm;
     var allObjects = myPage.allPageItems;
     var fileName;
     // goes through all elements of page 0
     if(usesGroups == true) {
+      var grp2Center = []
       for(var ii = 0; ii < groups.length;ii++)
       {
         var grp = groups[ii]
+        if (grp.label =="center") {
+          var geoBounds = grp.geometricBounds
+          grp2Center.push({
+            grp:grp,
+            l:geoBounds[0],
+            t:geoBounds[1],
+            r:geoBounds[2],
+            b:geoBounds[3]
+          })
+        }
+      }
+      for(var ii = 0; ii < groups.length;ii++)
+      {
+        var grp = groups[ii] // Groups found with the group%0 label as an example
         if (grp.label.split('%')[0] =="group") {
+          var groupI = parseInt(grp.label.split('%')[1])+skipTo;
           var textFrames = grp.textFrames;
-          var groupI = parseInt(allObjects[ii].label.split('%')[1])+skipTo;
           var rectangles = grp.rectangles;
-          for(var tex in textFrames)
+          for(var tex = 0;tex < textFrames.length;tex++) //Fill Texts
           {
             var curTex = textFrames[tex];
             if(curTex.label =="name")
@@ -164,7 +201,7 @@ if (myDialog.show())
               }
             }
           }
-          for(var rec in rectangles)
+          for(var rec = 0;rec < rectangles.length;rec++) //Fill pictures
           {
             var curRec = rectangles[rec];
             if(curRec.label =="pic")
@@ -183,8 +220,15 @@ if (myDialog.show())
           }
         }
       }
+      for(var gi in grp2Center)
+      {
+        var grp = grp2Center[gi];
+        if (grp.label =="center") {
+
+        }
+      }
     }
-    else {
+    else { //No Group Script
       for(var ii = 0; ii < allObjects.length; ii++)
       {
       //If selected element is TextFrame [Text]

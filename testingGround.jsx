@@ -18,7 +18,10 @@ while(true) {
         var cur = this;
         try {
             for(var i in attr)
-                    cur = cur[attr[i]]
+                    if(attr[i].split("()").length > 1)
+                        cur = cur[attr[i].split("()")[0]]()
+                    else
+                        cur = cur[attr[i]]
             alert(cur)
         }
         catch(error)
