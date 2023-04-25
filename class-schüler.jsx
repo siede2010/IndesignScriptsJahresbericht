@@ -48,7 +48,7 @@ function readSchüler(path)
            var data = {};
            data.class = {};
            data.abteilung = {};
-           data.email = {}
+           data.email = {};
            for(var i = 0; i < lines.length; i++){
               var set = lines[i].split(";");
               if (set[4] == "schüler")
@@ -81,37 +81,35 @@ function readSchüler(path)
                 data.email[set[0]] = nData;
               }
            }
-       } catch (error) { alert (error, "ERROR when reading the CSV File. something may be wrong with its content."); }
+       } catch (error) { alert (error, "ERROR when reading the CSV File Schüler. something may be wrong with its content."); }
        return data;
    } return null;
 }
-function readSaying(path)
+function readSaying(path,schüler)
 {
    var file = File(path);
    file.encoding = 'UTF8';
    if(file.open("r")){
        var content = file.read(); file.close;
        try {
-           var lines = content.split("\n");
-           var data = {};
-           data.class = {};
-           data.abteilung = {};
-           for(var i = 0; i < lines.length; i++){
-             
-           }
-       } catch (error) { alert (error, "ERROR when reading the CSV File. something may be wrong with its content."); }
-       return data;
+            var lines = content.split("\n");
+            for(var i = 0; i < lines.length; i++){
+                var set = lines[i].split(";");
+                schüler.email[set[0]].saying = set[1]
+            }
+       } catch (error) { alert (error, "ERROR when reading the CSV File Saying. something may be wrong with its content."); }
+       return null;
    } return null;
 }
 
 var doc = app.activeDocument; // gets the opened active document
 
-var f = File.openDialog("Please select the CSV File…", true, false);
+var schuelerf = File.openDialog("Please select the Schüler CSV File…", true, false);
+var sayingf = File.openDialog("Please select the Sayings CSV File…", true, false);
 var folder = Folder.selectDialog( "Select a folder" );
 var myPics = [];
 GetSubFolders(folder);
 
-if (f != null && folder != null) return;
 var myDialog = app.dialogs.add({name:"adding Class:"}) // Create a new Dialog box to edit
 with (myDialog) // uses the dialog box as the theoreticaly "this"
 {
@@ -121,14 +119,14 @@ with (myDialog) // uses the dialog box as the theoreticaly "this"
                staticTexts.add({staticLabel:"Page Number :"});
                var selectedPage = integerEditboxes.add({editValue:1}); //box that hold the changeable info aka value.
        }
-       with(dialogRows.add()){ //row 2 7_7
-               staticTexts.add({staticLabel:"Title :"});
-               var titleBox = textEditboxes.add({editContents:"3AHIT"}); // titel of class
-       }
        with(dialogRows.add()){ //row 3 lul
-           staticTexts.add({staticLabel:"CSV Path :"});
-           var csvBox = textEditboxes.add({editContents:f}); // path to csv file
+           staticTexts.add({staticLabel:"CSV Schüler Path :"});
+           var csvSchuelerBox = textEditboxes.add({editContents:schuelerf}); // path to csv file
        }
+       with(dialogRows.add()){ //row 4 lul
+        staticTexts.add({staticLabel:"CSV Saying Path :"});
+        var csvSayingBox = textEditboxes.add({editContents:sayingf}); // path to csv file
+        }
        with(dialogRows.add()){
            staticTexts.add({staticLabel:"File Path : " + (folder + "").split("%20").join(" ")})
        }
@@ -140,4 +138,12 @@ with (myDialog) // uses the dialog box as the theoreticaly "this"
        var isGroupBox = checkboxControls.add({checkedState:true}); //so you can switch between new version and old one.
      }
    }
+}
+if (myDialog.show())
+{
+  var csv = readSchüler(csvSchuelerBox.editContents)
+  readSaying(csvSayingBox.editContents,csv)
+
+}else {
+    myDialog.destroy();
 }
