@@ -9,6 +9,8 @@ example :
 Schreiner.a20@HTLwienwest.at;Hello this is what i say.
 3. if the databank is bigger than the amount of frames on the page it will create another one.
 
+Discord : Siede#6321 [if you have any questions]
+
 -------------------
 */
 function GetSubFolders(theFolder) {
