@@ -158,21 +158,6 @@ if (myDialog.show())
     var fileName;
     // goes through all elements of page 0
     if(usesGroups == true) {
-      var grp2Center = []
-      for(var ii = 0; ii < groups.length;ii++)
-      {
-        var grp = groups[ii]
-        if (grp.label =="center") {
-          var geoBounds = grp.geometricBounds
-          grp2Center.push({
-            grp:grp,
-            l:geoBounds[0],
-            t:geoBounds[1],
-            r:geoBounds[2],
-            b:geoBounds[3]
-          })
-        }
-      }
       for(var ii = 0; ii < groups.length;ii++)
       {
         var grp = groups[ii] // Groups found with the group%0 label as an example
@@ -224,13 +209,6 @@ if (myDialog.show())
           }
         }
       }
-      for(var gi in grp2Center)
-      {
-        var grp = grp2Center[gi];
-        if (grp.label =="center") {
-
-        }
-      }
     }
     else { //No Group Script
       for(var ii = 0; ii < allObjects.length; ii++)
@@ -260,10 +238,6 @@ if (myDialog.show())
               allObjects[ii].remove();
             }
           }
-          else if(allObjects[ii].label == "titel")
-          {
-            allObjects[ii].contents = title
-          }
         //allObjects[ii].contents = "text" + ii;
         }
       //If selected element is Rectangle [Picture]
@@ -288,6 +262,13 @@ if (myDialog.show())
         //imageFrame.fit(FitOptions.PROPORTIONALLY); //fits the image to fill the whole frame
         }
       }
+    }
+    var allObjects = myPage.allPageItems;
+    for(var ii = 0;ii < allObjects.length;ii++) {
+      var obj = allObjects[ii]
+      if (obj instanceof TextFrame) 
+        if(obj.label == "titel")
+          obj.contents = title
     }
   }
 }
