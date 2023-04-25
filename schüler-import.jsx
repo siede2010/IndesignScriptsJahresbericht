@@ -1,3 +1,4 @@
+
 /* 
 --How to use this--
 
@@ -22,27 +23,30 @@ function GetSubFolders(theFolder) {
           }
      }
 }
+var flatGroup = []
 
-function flattenGroups(groups)
+function flattenGroups(flgroups)
 {
-  var flatGroup = []
-  for(var g in groups)
+  flatGroup = []
+  for(var g = 0;g<flgroups.length;g++)
   {
-    if (groups[g].groups.length > 0)
-      innerFlat(groups[g].groups)
-    else
-      flatGroup.push(groups[g])
+    if (flgroups[g] != null)
+      if (flgroups[g].groups.length > 0)
+        innerFlat(flgroups[g].groups)
+      else
+        flatGroup.push(flgroups[g])
   }
   return flatGroup;
 }
-function innerFlat(groups)
+function innerFlat(ifgroups)
 {
-  for(var gr in groups)
+  for(var gr = 0;gr<ifgroups.length;gr++)
   {
-    if (groups[gr].groups.length > 0)
-      innerFlat(groups[gr].groups)
-    else
-      flatGroup.push(groups[g])
+    if (ifgroups[gr] != null)
+      if (ifgroups[gr].groups.length > 0)
+        innerFlat(ifgroups[gr].groups)
+      else
+        flatGroup.push(ifgroups[gr])
   }
 }
 
