@@ -1,4 +1,4 @@
-function GetSubFolders(theFolder) {
+function GetSubFolders(theFolder) { //if the pictures are within sub folders it should extract those aswell
     var myFileList = theFolder.getFiles();
     for (var i = 0; i < myFileList.length; i++) {
          var myFile = myFileList[i];
@@ -7,22 +7,15 @@ function GetSubFolders(theFolder) {
          }
          else if (myFile instanceof File) {
               myPics.push(myFile);
-         }
+         } 
     }
 }
 var flatGroup = []
 
 function flattenGroups(flgroups)
-{
+{ //flatten's groups to make stuff easier to do in the future.
  flatGroup = []
- for(var g = 0;g<flgroups.length;g++)
- {
-   if (flgroups[g] != null)
-     if (flgroups[g].groups.length > 0)
-       innerFlat(flgroups[g].groups)
-     else
-       flatGroup.push(flgroups[g])
- }
+ innerFlat(flgroups)
  return flatGroup;
 }
 function innerFlat(ifgroups)
@@ -46,42 +39,89 @@ function readSchüler(path)
        try {
            var lines = content.split("\n");
            var data = {};
-           data.class = {};
-           data.abteilung = {};
-           data.email = {};
-           for(var i = 0; i < lines.length; i++){
-              var set = lines[i].split(";");
-              if (set[4] == "student")
+           data["unit"] = {};
+           data["abteilung"] = {};
+           data["email"] = {};
+           var origins = lines[0].split(";")
+           var cIndex = { //default case when top is not set.
+             email:0,
+             unit:1,
+             firstName:2,
+             lastName:3,
+             role:4,
+             abbreviation:5
+           }
+           var startIndex = 1
+           for(var indexxer in origins)
+           {
+              var dataSet = origins[indexxer].toLowerCase()
+              switch(dataSet)
+              { // reads the first line to check if indexxer's are present
+                // indexxers are stuff like email;name;etc...
+                // not needed. if not present will default to this :
+                // email;class;firstName;lastName;role;abbrev;
+                case "email":
+                  cIndex.email = indexxer;
+                  break;
+                case "orgUnit":
+                case "class":
+                  cIndex.unit = indexxer;
+                  break;
+                case "name.given":
+                case "firstName":
+                case "name.first":
+                  cIndex.firstName = indexxer;
+                  break;
+                case "name.last":
+                case "lastName":
+                  cIndex.lastName = indexxer
+                  break;
+                case "role":
+                  cIndex.role = indexxer
+                  break;
+                case "abbrev":
+                case "abbrov":
+                  cIndex.abbreviation = indexxer
+                  break;
+                default:
+                  startIndex = 0; //if it has a no header start on 0
+                  break;
+              }
+           }
+           //email;orgUnit;name.given;name.last;role;abbrev;
+           for(var i = startIndex; i < lines.length; i++){
+              var set = lines[i].split(";"); //this is basicaly the list of info.
+              if (set.length <= cIndex.unit) continue;
+              if (set[cIndex.role] == "student")
               {
-                if (data.class[set[1]] == null) 
-                  data.class[set[1]] = {schülers:[]}
-                
-                var nData = {
-                    email:set[0],
-                    class:set[1],
-                    vorname:set[2],
-                    nachname:set[3],
-                    name:set[2] + " " + set[3],
-                    role:set[4],
-                    saying:"",
-                    pic:""
+                if (data.unit[set[cIndex.unit]] == null) 
+                  data.unit[set[cIndex.unit]] = {schülers:[]}
+                var nData = { //the dataset is saved as nData so it can be put into multible things without having to call the other list
+                    email:set[cIndex.email],
+                    unit:set[cIndex.unit],
+                    vorname:set[cIndex.firstName],
+                    nachname:set[cIndex.lastName],
+                    name:set[cIndex.firstName] + " " + set[cIndex.lastName],
+                    role:set[cIndex.role],
+                    saying:"", //will be added with the other csv
+                    pic:"" //is added with the pic finder
                   }
-                data.class[set[1]].schülers.push(nData)
-                data.email[set[0]] = nData;
-              } else if (set[4] == "teacher") {
-                if (data.abteilung[set[1]] = null) 
-                  data.abteilung[set[1]] = {teachers:[]}
+                data.unit[set[cIndex.unit]].schülers.push(nData)
+                data.email[set[cIndex.email]] = nData;
+              } else if (set[cIndex.role] == "teacher") {
+                if (data.abteilung[set[cIndex.unit]] = null) 
+                  data.abteilung[set[cIndex.unit]] = {teachers:[]}
                 
                   var nData = {
-                    email:set[0],
-                    abteilung:set[1],
-                    vorname:set[2],
-                    nachname:set[3],
-                    name:set[2] + " " + set[3],
-                    role:set[4],
-                    saying:"",
-                    abkz:set[5],
-                    pic:""
+                    email:set[cIndex.email],
+                    abteilung:set[cIndex.unit],
+                    vorname:set[cIndex.firstName],
+                    nachname:set[cIndex.lastName],
+                    name:set[cIndex.firstName] + " " + set[cIndex.lastName],
+                    role:set[cIndex.role],
+                    saying:"", //will be added with the other csv
+                    abkz:set[cIndex.abbreviation],
+                    pic:"" //is added with the pic finder
                 }
                 data.abteilung[set[1]].teachers.push(nData)
                 data.email[set[0]] = nData;
@@ -98,6 +138,9 @@ function readSaying(path,schüler)
    if(file.open("r")){
        var content = file.read(); file.close;
        try {
+          //expects first email then saying
+          //example : abroc.gerome@htlWienwest.at;I am Gerome and i am not annoyed.
+          //  'u'
             var lines = content.split("\n");
             for(var i = 0; i < lines.length; i++){
                 var set = lines[i].split(";");
@@ -147,19 +190,18 @@ with (myDialog) // uses the dialog box as the theoreticaly "this"
 }
 if (myDialog.show())
 {
-  var title = titleBox.editContents
-  var objectAmm = 0;
+  var objectAmm = 0; //how many people can fit in 1 page.
   var pageToDuplicate = doc.pages[selectedPage.editValue-1];
   var usesGroups = isGroupBox.checkedState;
   var allTemplateObjects = pageToDuplicate.allPageItems;
   var csv = readSchüler(csvSchuelerBox.editContents)
   readSaying(csvSayingBox.editContents,csv)
   var allClasses = [];
-  for(var i in csv.class)
+  for(var i in csv.unit)
     allClasses.push(i)
-  for(var picI in csv.class) //Imports any Pic Files into the correct user
+  for(var picI in csv.unit) //Imports any Pic Files into the correct user
   {
-    var curClass = vsc.class[picI]
+    var curClass = csv.unit[picI]
     for(var student in curClass.schülers) {
         var curStud = curClass.schülers[student] //current Student.
         var nameCheck = curStud.vorname.toLowerCase() + "_" + curStud.nachname.toLowerCase()
@@ -173,17 +215,17 @@ if (myDialog.show())
         }
     }
   }
-  for(var i in allTemplateObjects)
-  { // Counts the amount of class members within the template page
-    if (allTemplateObjects.label.toLowerCase().split("name").length > 1)
-        objectAmm++;
-  }
-  for(var curClassName in allClasses)
+  for(var i = 0;i < allTemplateObjects.length;i++) /* Counts the amount of class members within the template page */ 
+    if (allTemplateObjects[i].label != null && allTemplateObjects[i].label.toLowerCase().split("name").length > 1)
+      objectAmm++; //counts the amount of name elements to count how many people fit.
+  for(var curClassNameInd in allClasses)
   { //now the fun starts with each class.
-    var curClass = csv.class[curClassName] //class Object {schülers:[]}
+    var curClassName = allClasses[curClassNameInd]
+    var curClass = csv.unit[curClassName] //class Object {schülers:[]}
     var title = curClassName; // classTitle
     var sAmount = curClass.schülers.length; // amount of class members
     var pages = Math.ceil(sAmount / objectAmm) //the amount of pages this class needs.
+    if (pages > 100000) throw "tooLargeError : failsave if no name labels are within the in design design."
     var classInd = 0; // after a class was made it goes again
     var cpyPages = []
     for(var p = 0;p<pages;p++)
@@ -195,14 +237,14 @@ if (myDialog.show())
       if(usesGroups) //when it uses group%0
       { // -------------------------------------Group Code-------------------------------------
         var curGroups = curPage.groups;
-        for(var groupIndex in curGroups)
+        for(var groupIndex = 0;groupIndex < curGroups.length;groupIndex++)
         {
           var curGroup = curGroups[groupIndex] //current Group
           var curTextFrames = curGroup.textFrames //textFrames
           var curRectangles = curGroup.rectangles  //rectangles
-          var groupI = group.label.split("%")[1] + grpUpInd
-          var curSchüler = csv.class[curClassName].schülers[groupI]
-          for(var ii in curTextFrames)
+          var groupI = parseInt(curGroup.label.split("%")[1]) + grpUpInd
+          var curSchüler = curClass.schülers[groupI]
+          for(var ii = 0;ii < curTextFrames.length;ii++)
           { //current Time Frame
             var curTextFr = curTextFrames[ii]
             if(curTextFr.label.toLowerCase() == "name")
@@ -226,7 +268,7 @@ if (myDialog.show())
               }
             }
           }
-          for(var ii in curRectangles)
+          for(var ii = 0;ii < curRectangles.length;ii++)
           { //current Rectangle
             var curRectangle = curRectangles[ii]
             if(curRectangle.label.toLowerCase() =="pic")
@@ -252,12 +294,14 @@ if (myDialog.show())
         for(var curElemInd in curElems)
         {
           var curElem = curElems[curElemInd] //Current Element
+          var curInd = parseInt(curElem.label.split('%')[1]) + skipTo;
+          var curSchüler = curClass.schülers[curInd]
           if(curElem instanceof TextFrame) //If selected element is TextFrame [Text]
           {
             if(curElem.label.split('%')[0].toLowerCase() =="name")
             {
               try {
-                curElem.contents = csv.name[parseInt(curElem.label.split('%')[1])+skipTo];
+                curElem.contents = curSchüler.name;
               }
               catch(error)
               {
@@ -267,7 +311,7 @@ if (myDialog.show())
             else if(curElem.label.split('%')[0].toLowerCase() == "saying")
             {
               try {
-                curElem.contents = csv.saying[parseInt(curElem.label.split('%')[1])+skipTo];
+                curElem.contents = curSchüler.saying;
               }
               catch(error)
               {
@@ -280,7 +324,7 @@ if (myDialog.show())
             if(curElem.label.split('%')[0].toLowerCase() =="pic")
             {
               try {
-                var myFile = new File(csv.pic[parseInt(curElem.label.split('%')[1])+skipTo]);
+                var myFile = new File(curSchüler.pic);
                 fileName = myFile.name;
                 var imageFrage = curElem.place(myFile)[0];
                 imageFrage.fit(FitOptions.PROPORTIONALLY)
@@ -295,7 +339,6 @@ if (myDialog.show())
       }
     }
   }
-
 }else {
     myDialog.destroy();
 }
