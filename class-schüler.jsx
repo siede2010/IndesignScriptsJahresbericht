@@ -61,6 +61,7 @@ function readSchüler(path)
                     class:set[1],
                     vorname:set[2],
                     nachname:set[3],
+                    name:set[2] + " " + set[3],
                     role:set[4],
                     saying:"",
                     pic:""
@@ -76,6 +77,7 @@ function readSchüler(path)
                     abteilung:set[1],
                     vorname:set[2],
                     nachname:set[3],
+                    name:set[2] + " " + set[3],
                     role:set[4],
                     saying:"",
                     abkz:set[5],
@@ -172,17 +174,126 @@ if (myDialog.show())
     }
   }
   for(var i in allTemplateObjects)
-  {
-    if (allTemplateObjects.label.split("name").length > 1)
+  { // Counts the amount of class members within the template page
+    if (allTemplateObjects.label.toLowerCase().split("name").length > 1)
         objectAmm++;
   }
   for(var curClassName in allClasses)
-  {
-    var curClass = csv.class[curClassName]
-    var title = curClassName;
-    var sAmount = curClass.schülers.length;
-    var pages = Math.ceil(sAmount / objectAmm)
-
+  { //now the fun starts with each class.
+    var curClass = csv.class[curClassName] //class Object {schülers:[]}
+    var title = curClassName; // classTitle
+    var sAmount = curClass.schülers.length; // amount of class members
+    var pages = Math.ceil(sAmount / objectAmm) //the amount of pages this class needs.
+    var classInd = 0; // after a class was made it goes again
+    var cpyPages = []
+    for(var p = 0;p<pages;p++)
+      cpyPages.push(pageToDuplicate.duplicate(LocationOptions.AFTER, doc.pages[-1]))
+    for(var curPageIndex in cpyPages)
+    {
+      var grpUpInd = objectAmm * classInd++
+      var curPage = cpyPages[curPageIndex]
+      if(usesGroups) //when it uses group%0
+      { // -------------------------------------Group Code-------------------------------------
+        var curGroups = curPage.groups;
+        for(var groupIndex in curGroups)
+        {
+          var curGroup = curGroups[groupIndex] //current Group
+          var curTextFrames = curGroup.textFrames //textFrames
+          var curRectangles = curGroup.rectangles  //rectangles
+          var groupI = group.label.split("%")[1] + grpUpInd
+          var curSchüler = csv.class[curClassName].schülers[groupI]
+          for(var ii in curTextFrames)
+          { //current Time Frame
+            var curTextFr = curTextFrames[ii]
+            if(curTextFr.label.toLowerCase() == "name")
+            {
+              try {
+                curTextFr.contents = curSchüler.name;
+              }
+              catch(error)
+              {
+                curTextFr.remove();
+              }
+            }
+            else if(curTextFr.label.toLowerCase() == "saying")
+            {
+              try {
+                curTextFr.contents = curSchüler.saying;
+              }
+              catch(error)
+              {
+                curTextFr.remove();
+              }
+            }
+          }
+          for(var ii in curRectangles)
+          { //current Rectangle
+            var curRectangle = curRectangles[ii]
+            if(curRectangle.label.toLowerCase() =="pic")
+            {
+              try {
+                var myFile = new File(curSchüler.pic);
+                fileName = myFile.name;
+                var imageFrage = curRectangle.place(myFile)[0];
+                imageFrage.fit(FitOptions.PROPORTIONALLY)
+              }
+              catch(error)
+              {
+                curRectangle.remove();
+              }
+            }
+          }
+        }
+      }
+      else { //when it uses saying%0 and other
+        // -------------------------------------Manual Code-------------------------------------
+        var skipTo = objectAmm * classInd++
+        var curElems = curPage.allPageItems;
+        for(var curElemInd in curElems)
+        {
+          var curElem = curElems[curElemInd] //Current Element
+          if(curElem instanceof TextFrame) //If selected element is TextFrame [Text]
+          {
+            if(curElem.label.split('%')[0].toLowerCase() =="name")
+            {
+              try {
+                curElem.contents = csv.name[parseInt(curElem.label.split('%')[1])+skipTo];
+              }
+              catch(error)
+              {
+                curElem.remove();
+              }
+            }
+            else if(curElem.label.split('%')[0].toLowerCase() == "saying")
+            {
+              try {
+                curElem.contents = csv.saying[parseInt(curElem.label.split('%')[1])+skipTo];
+              }
+              catch(error)
+              {
+                curElem.remove();
+              }
+            }
+          }
+          if (curElem instanceof Rectangle) //If selected element is Rectangle [Picture]
+          {
+            if(curElem.label.split('%')[0].toLowerCase() =="pic")
+            {
+              try {
+                var myFile = new File(csv.pic[parseInt(curElem.label.split('%')[1])+skipTo]);
+                fileName = myFile.name;
+                var imageFrage = curElem.place(myFile)[0];
+                imageFrage.fit(FitOptions.PROPORTIONALLY)
+              }
+              catch(error)
+              {
+                curElem.remove();
+              }
+            }
+          }
+        }
+      }
+    }
   }
 
 }else {
