@@ -1,0 +1,1 @@
+//Dieses Script ist da, um die Lehere Bilder, Name und Fächer zu impotieren.
