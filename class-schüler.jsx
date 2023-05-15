@@ -95,7 +95,7 @@ function readSchüler(path)
               if (set[cIndex.role] == "student")
               {
                 if (data.unit[set[cIndex.unit]] == null) 
-                  data.unit[set[cIndex.unit]] = {schülers:[]}
+                  data.unit[set[cIndex.unit]] = {schülers:[],name:set[cIndex.unit]}
                 var nData = { //the dataset is saved as nData so it can be put into multible things without having to call the other list
                     email:set[cIndex.email],
                     unit:set[cIndex.unit],
@@ -204,12 +204,12 @@ if (myDialog.show())
     var curClass = csv.unit[picI]
     for(var student in curClass.schülers) {
         var curStud = curClass.schülers[student] //current Student.
-        var nameCheck = curStud.vorname.toLowerCase() + "_" + curStud.nachname.toLowerCase()
+        var nameCheck = curStud.nachname.toLowerCase() + "_" + curStud.vorname.toLowerCase()
         for(var pic in myPics) // Checks each Picture
         {
             curPic = myPics[pic]; // checks with the split command if the given string exists within the other string.
             if(curPic.name.toLowerCase().split(nameCheck).length > 1) {
-                curStud.pic = curPic.path+"/"+myPics[picI].name; //sets the path for itself onto the student obj.
+                curStud.pic = curPic.path+"/"+curPic.name; //sets the path for itself onto the student obj.
                 break; //no reason to keep looping so breaking it is.
             }
         }
@@ -225,7 +225,7 @@ if (myDialog.show())
     var title = curClassName; // classTitle
     var sAmount = curClass.schülers.length; // amount of class members
     var pages = Math.ceil(sAmount / objectAmm) //the amount of pages this class needs.
-    if (pages > 100000) throw "tooLargeError : failsave if no name labels are within the in design design."
+    if (pages > 100000) throw "tooLargeCatch : failsave if no name labels are within the in design design."
     var classInd = 0; // after a class was made it goes again
     var cpyPages = []
     for(var p = 0;p<pages;p++)
@@ -234,8 +234,19 @@ if (myDialog.show())
     {
       var grpUpInd = objectAmm * classInd++
       var curPage = cpyPages[curPageIndex]
+
+      var curElems = curPage.allPageItems;
+      for(var curElemInd = 0;curElemInd<curElems.length;curElemInd++)
+      {
+        var curElem = curElems[curElemInd]
+        if (curElem instanceof TextFrame) {
+          if (curElem.label.toLowerCase() == "titel")
+            curElem.contents = curClass.name;
+        }
+      }
       if(usesGroups) //when it uses group%0
       { // -------------------------------------Group Code-------------------------------------
+
         var curGroups = curPage.groups;
         for(var groupIndex = 0;groupIndex < curGroups.length;groupIndex++)
         {
@@ -290,7 +301,6 @@ if (myDialog.show())
       else { //when it uses saying%0 and other
         // -------------------------------------Manual Code-------------------------------------
         var skipTo = objectAmm * classInd++
-        var curElems = curPage.allPageItems;
         for(var curElemInd in curElems)
         {
           var curElem = curElems[curElemInd] //Current Element
