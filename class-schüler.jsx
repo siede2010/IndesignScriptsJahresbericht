@@ -225,7 +225,7 @@ if (myDialog.show())
     var title = curClassName; // classTitle
     var sAmount = curClass.schülers.length; // amount of class members
     var pages = Math.ceil(sAmount / objectAmm) //the amount of pages this class needs.
-    if (pages > 100000) throw "tooLargeCatch : failsave if no name labels are within the in design design."
+    if (pages > 100000) throw "tooLargeCatch : failsave if no name labels are within the inDesign design."
     var classInd = 0; // after a class was made it goes again
     var cpyPages = []
     for(var p = 0;p<pages;p++)
@@ -260,23 +260,22 @@ if (myDialog.show())
             var curTextFr = curTextFrames[ii]
             if(curTextFr.label.toLowerCase() == "name")
             {
-              try {
-                curTextFr.contents = curSchüler.name;
-              }
-              catch(error)
-              {
+              if(curSchüler == undefined) {
                 curTextFr.remove();
+                ii--;
+                groupIndex--;
               }
+              else
+                curTextFr.contents = curSchüler.name;
             }
             else if(curTextFr.label.toLowerCase() == "saying")
             {
-              try {
-                curTextFr.contents = curSchüler.saying;
-              }
-              catch(error)
-              {
+              if(curSchüler == undefined) {
                 curTextFr.remove();
+                ii--;
               }
+              else
+                curTextFr.contents = curSchüler.saying;
             }
           }
           for(var ii = 0;ii < curRectangles.length;ii++)
@@ -293,6 +292,7 @@ if (myDialog.show())
               catch(error)
               {
                 curRectangle.remove();
+                break;
               }
             }
           }
@@ -310,23 +310,21 @@ if (myDialog.show())
           {
             if(curElem.label.split('%')[0].toLowerCase() =="name")
             {
-              try {
-                curElem.contents = curSchüler.name;
-              }
-              catch(error)
-              {
+              if (curSchüler == undefined && curElem.isValid){
+                ii--;
                 curElem.remove();
               }
+              else
+                curElem.contents = curSchüler.name;
             }
             else if(curElem.label.split('%')[0].toLowerCase() == "saying")
             {
-              try {
-                curElem.contents = curSchüler.saying;
-              }
-              catch(error)
-              {
+              if (curSchüler == undefined && curElem.isValid){
+                ii--;
                 curElem.remove();
               }
+              else
+                curElem.contents = curSchüler.saying;
             }
           }
           if (curElem instanceof Rectangle) //If selected element is Rectangle [Picture]
