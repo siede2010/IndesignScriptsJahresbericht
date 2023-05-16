@@ -186,22 +186,31 @@ with (myDialog) // uses the dialog box as the theoreticaly "this"
        staticTexts.add({staticLabel:"Uses Groups? [group%0 as example] :"});
        var isGroupBox = checkboxControls.add({checkedState:true}); //so you can switch between new version and old one.
      }
+     with(dialogRows.add()){ //row go brr
+      staticTexts.add({staticLabel:"Print Student? [False = Print Teachers] :"});
+      var isStudentBox = checkboxControls.add({checkedState:true}); //so you can switch between new version and old one.
+    }
    }
 }
+
+// ----------------------------------------- Start of the Active Script -------------------------------------------
+
 if (myDialog.show())
 {
   var objectAmm = 0; //how many people can fit in 1 page.
   var pageToDuplicate = doc.pages[selectedPage.editValue-1];
   var usesGroups = isGroupBox.checkedState;
+  var printStudents = isStudentBox.checkedState;
   var allTemplateObjects = pageToDuplicate.allPageItems;
   var csv = readSchüler(csvSchuelerBox.editContents)
   readSaying(csvSayingBox.editContents,csv)
+  var selUnit = printStudents ? csv.unit : csv.abteilung;
   var allClasses = [];
-  for(var i in csv.unit)
+  for(var i in selUnit)
     allClasses.push(i)
-  for(var picI in csv.unit) //Imports any Pic Files into the correct user
+  for(var picI in selUnit) //Imports any Pic Files into the correct user
   {
-    var curClass = csv.unit[picI]
+    var curClass = selUnit[picI]
     for(var student in curClass.schülers) {
         var curStud = curClass.schülers[student] //current Student.
         var nameCheck = curStud.nachname.toLowerCase() + "_" + curStud.vorname.toLowerCase()
@@ -221,7 +230,7 @@ if (myDialog.show())
   for(var curClassNameInd in allClasses)
   { //now the fun starts with each class.
     var curClassName = allClasses[curClassNameInd]
-    var curClass = csv.unit[curClassName] //class Object {schülers:[]}
+    var curClass = selUnit[curClassName] //class Object {schülers:[]}
     var title = curClassName; // classTitle
     var sAmount = curClass.schülers.length; // amount of class members
     var pages = Math.ceil(sAmount / objectAmm) //the amount of pages this class needs.
@@ -261,7 +270,7 @@ if (myDialog.show())
             if(curTextFr.label.toLowerCase() == "name")
             {
               if(curSchüler == undefined) {
-                curTextFr.remove();
+                curTextFr.remove(); //if curSchüler doesnt Exist it removes that label.
                 ii--;
                 groupIndex--;
               }
@@ -271,7 +280,7 @@ if (myDialog.show())
             else if(curTextFr.label.toLowerCase() == "saying")
             {
               if(curSchüler == undefined) {
-                curTextFr.remove();
+                curTextFr.remove(); //if curSchüler doesnt Exist it removes that label.
                 ii--;
               }
               else
@@ -290,7 +299,7 @@ if (myDialog.show())
                 imageFrage.fit(FitOptions.PROPORTIONALLY)
               }
               catch(error)
-              {
+              { //if no pic was found and error was called remove pic element.
                 curRectangle.remove();
                 break;
               }
@@ -311,7 +320,7 @@ if (myDialog.show())
             if(curElem.label.split('%')[0].toLowerCase() =="name")
             {
               if (curSchüler == undefined && curElem.isValid){
-                ii--;
+                ii--; //Invalid Schüler elements should be removed
                 curElem.remove();
               }
               else
@@ -320,7 +329,7 @@ if (myDialog.show())
             else if(curElem.label.split('%')[0].toLowerCase() == "saying")
             {
               if (curSchüler == undefined && curElem.isValid){
-                ii--;
+                ii--;//Invalid Schüler elements should be removed
                 curElem.remove();
               }
               else
@@ -339,6 +348,7 @@ if (myDialog.show())
               }
               catch(error)
               {
+                //Invalid Schüler elements should be removed
                 curElem.remove();
               }
             }
