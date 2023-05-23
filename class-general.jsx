@@ -1,12 +1,23 @@
+/*
+Label's used :
+  Pic - Photo Frame
+  Name - Text Frame
+  Saying - Text Frame
+  Group%0 - 0 represents the index. (given to the group that contains all 3 Frames)
+Uses 3 Things :
+  peopleet.csv [Contains info about every student & teacher]
+  saying.csv [contains a email and their saying]
+  picFolder [a folder that contains every portrait]
+*/
 function GetSubFolders(theFolder) { //if the pictures are within sub folders it should extract those aswell
     var myFileList = theFolder.getFiles();
     for (var i = 0; i < myFileList.length; i++) {
          var myFile = myFileList[i];
          if (myFile instanceof Folder){
-              GetSubFolders(myFile);
+              GetSubFolders(myFile); // is folder then run this again, with the folder as the host.
          }
          else if (myFile instanceof File) {
-              myPics.push(myFile);
+              myPics.push(myFile); //put into list.
          } 
     }
 }
@@ -19,7 +30,7 @@ function flattenGroups(flgroups)
  return flatGroup;
 }
 function innerFlat(ifgroups)
-{
+{ //basicaly the same for the folders but it instead does it to groups.
  for(var gr = 0;gr<ifgroups.length;gr++)
  {
    if (ifgroups[gr] != null)
@@ -92,39 +103,40 @@ function readSchüler(path)
            for(var i = startIndex; i < lines.length; i++){
               var set = lines[i].split(";"); //this is basicaly the list of info.
               if (set.length <= cIndex.unit) continue;
+              var nData = {}
               if (set[cIndex.role] == "student")
               {
                 if (data.unit[set[cIndex.unit]] == null) 
-                  data.unit[set[cIndex.unit]] = {schülers:[],name:set[cIndex.unit]}
-                var nData = { //the dataset is saved as nData so it can be put into multible things without having to call the other list
+                  data.unit[set[cIndex.unit]] = {people:[],name:set[cIndex.unit]}
+                nData = { //the dataset is saved as nData so it can be put into multible things without having to call the other list
                     email:set[cIndex.email],
-                    unit:set[cIndex.unit],
+                    //unit:set[cIndex.unit], //unused
                     vorname:set[cIndex.firstName],
                     nachname:set[cIndex.lastName],
                     name:set[cIndex.firstName] + " " + set[cIndex.lastName],
-                    role:set[cIndex.role],
+                    //role:set[cIndex.role], //it has no use. its always the same for the entire class.
                     saying:"", //will be added with the other csv
                     pic:"" //is added with the pic finder
                   }
-                data.unit[set[cIndex.unit]].schülers.push(nData)
-                data.email[set[cIndex.email]] = nData;
+                data.unit[set[cIndex.unit]].people.push(nData)
+                data.email[set[cIndex.email]] = nData; 
               } else if (set[cIndex.role] == "teacher") {
-                if (data.abteilung[set[cIndex.unit]] = null) 
-                  data.abteilung[set[cIndex.unit]] = {teachers:[]}
+                if (data.abteilung[set[cIndex.unit]] == null) 
+                  data.abteilung[set[cIndex.unit]] = {people:[],name:set[cIndex.unit]}
                 
-                  var nData = {
+                  nData = {
                     email:set[cIndex.email],
-                    abteilung:set[cIndex.unit],
+                    //abteilung:set[cIndex.unit], //unused 2
                     vorname:set[cIndex.firstName],
                     nachname:set[cIndex.lastName],
                     name:set[cIndex.firstName] + " " + set[cIndex.lastName],
-                    role:set[cIndex.role],
+                    //role:set[cIndex.role], //it has no use.
                     saying:"", //will be added with the other csv
-                    abkz:set[cIndex.abbreviation],
+                    abkz:set[cIndex.abbreviation], // specialty of the Teachers.
                     pic:"" //is added with the pic finder
                 }
-                data.abteilung[set[1]].teachers.push(nData)
-                data.email[set[0]] = nData;
+                data.abteilung[set[cIndex.unit]].people.push(nData)
+                data.email[set[cIndex.email]] = nData; //alternative way of finding a user. using their email. used for saying.csv
               }
            }
        } catch (error) { alert (error, "ERROR when reading the CSV File Schüler. something may be wrong with its content."); }
@@ -144,7 +156,7 @@ function readSaying(path,schüler)
             var lines = content.split("\n");
             for(var i = 0; i < lines.length; i++){
                 var set = lines[i].split(";");
-                schüler.email[set[0]].saying = set[1]
+                schüler.email[set[0]].saying = set[1] //find the user using the email enum list.
             }
        } catch (error) { alert (error, "ERROR when reading the CSV File Saying. something may be wrong with its content."); }
        return null;
@@ -157,49 +169,42 @@ var schuelerf = File.openDialog("Please select the Schüler CSV File…", true, 
 var sayingf = File.openDialog("Please select the Sayings CSV File…", true, false);
 var folder = Folder.selectDialog( "Select a folder" );
 var myPics = [];
-GetSubFolders(folder);
+if (folder != null)
+  GetSubFolders(folder);
 
 var myDialog = app.dialogs.add({name:"adding Class:"}) // Create a new Dialog box to edit
 with (myDialog) // uses the dialog box as the theoreticaly "this"
 {
    with (dialogColumns.add()) // adds a column to it
    {
-       with(dialogRows.add()){ //row go brr
-               staticTexts.add({staticLabel:"Page Number :"});
-               var selectedPage = integerEditboxes.add({editValue:1}); //box that hold the changeable info aka value.
-       }
-       with(dialogRows.add()){ //row 3 lul
-           staticTexts.add({staticLabel:"CSV Schüler Path :"});
-           var csvSchuelerBox = textEditboxes.add({editContents:schuelerf}); // path to csv file
-       }
-       with(dialogRows.add()){ //row 4 lul
+    with(dialogRows.add())
+    {
+      with(dialogColumns.add())
+      {
+        staticTexts.add({staticLabel:"Page Number :"});
+        staticTexts.add({staticLabel:"CSV Schüler Path :"});
         staticTexts.add({staticLabel:"CSV Saying Path :"});
+        staticTexts.add({staticLabel:"Print Student? [False = Print Teachers] :"});
+        staticTexts.add({staticLabel:"File Path : " + (folder + "").split("%20").join(" ")})
+        staticTexts.add({staticLabel: myPics.length + " pictures found"})
+      } //Reorganized from old style. :>
+      with(dialogColumns.add())
+      {
+        var selectedPage = integerEditboxes.add({editValue:1}); //box that hold the changeable info aka value.
+        var csvSchuelerBox = textEditboxes.add({editContents:schuelerf}); // path to csv file
         var csvSayingBox = textEditboxes.add({editContents:sayingf}); // path to csv file
-        }
-       with(dialogRows.add()){
-           staticTexts.add({staticLabel:"File Path : " + (folder + "").split("%20").join(" ")})
-       }
-       with(dialogRows.add()){
-         staticTexts.add({staticLabel: myPics.length + " pictures found"})
-     }
-     with(dialogRows.add()){ //row go brr
-       staticTexts.add({staticLabel:"Uses Groups? [group%0 as example] :"});
-       var isGroupBox = checkboxControls.add({checkedState:true}); //so you can switch between new version and old one.
-     }
-     with(dialogRows.add()){ //row go brr
-      staticTexts.add({staticLabel:"Print Student? [False = Print Teachers] :"});
-      var isStudentBox = checkboxControls.add({checkedState:true}); //so you can switch between new version and old one.
+        var isStudentBox = checkboxControls.add({checkedState:true}); //so you can switch between new version and old one.
+      }
     }
    }
 }
 
 // ----------------------------------------- Start of the Active Script -------------------------------------------
-
+if (schuelerf != null && sayingf != null) // if it was not set it should not run it.
 if (myDialog.show())
 {
   var objectAmm = 0; //how many people can fit in 1 page.
   var pageToDuplicate = doc.pages[selectedPage.editValue-1];
-  var usesGroups = isGroupBox.checkedState;
   var printStudents = isStudentBox.checkedState;
   var allTemplateObjects = pageToDuplicate.allPageItems;
   var csv = readSchüler(csvSchuelerBox.editContents)
@@ -211,8 +216,8 @@ if (myDialog.show())
   for(var picI in selUnit) //Imports any Pic Files into the correct user
   {
     var curClass = selUnit[picI]
-    for(var student in curClass.schülers) {
-        var curStud = curClass.schülers[student] //current Student.
+    for(var student in curClass.people) {
+        var curStud = curClass.people[student] //current Student.
         var nameCheck = curStud.nachname.toLowerCase() + "_" + curStud.vorname.toLowerCase()
         for(var pic in myPics) // Checks each Picture
         {
@@ -230,11 +235,12 @@ if (myDialog.show())
   for(var curClassNameInd in allClasses)
   { //now the fun starts with each class.
     var curClassName = allClasses[curClassNameInd]
-    var curClass = selUnit[curClassName] //class Object {schülers:[]}
+    var curClass = selUnit[curClassName] //class Object {people:[]}
     var title = curClassName; // classTitle
-    var sAmount = curClass.schülers.length; // amount of class members
+    var sAmount = curClass.people.length; // amount of class members
     var pages = Math.ceil(sAmount / objectAmm) //the amount of pages this class needs.
-    if (pages > 100000) throw "tooLargeCatch : failsave if no name labels are within the inDesign design."
+    if (pages > 100000) throw "tooLargeCatch : failsave if no name labels are within the inDesign design.\nWhat was expected :\ngroup%0\n  name\n  saying  \n  pic";
+    //Failsave if you forgot to put any labels on the page.
     var classInd = 0; // after a class was made it goes again
     var cpyPages = []
     for(var p = 0;p<pages;p++)
@@ -250,107 +256,57 @@ if (myDialog.show())
         var curElem = curElems[curElemInd]
         if (curElem instanceof TextFrame) {
           if (curElem.label.toLowerCase() == "titel")
-            curElem.contents = curClass.name;
+            curElem.contents = curClass.name; //Title should be set to classname.
         }
       }
-      if(usesGroups) //when it uses group%0
-      { // -------------------------------------Group Code-------------------------------------
-
-        var curGroups = curPage.groups;
-        for(var groupIndex = 0;groupIndex < curGroups.length;groupIndex++)
-        {
-          var curGroup = curGroups[groupIndex] //current Group
-          var curTextFrames = curGroup.textFrames //textFrames
-          var curRectangles = curGroup.rectangles  //rectangles
-          var groupI = parseInt(curGroup.label.split("%")[1]) + grpUpInd
-          var curSchüler = curClass.schülers[groupI]
-          for(var ii = 0;ii < curTextFrames.length;ii++)
-          { //current Time Frame
-            var curTextFr = curTextFrames[ii]
-            if(curTextFr.label.toLowerCase() == "name")
-            {
-              if(curSchüler == undefined) {
-                curTextFr.remove(); //if curSchüler doesnt Exist it removes that label.
-                ii--;
-                groupIndex--;
-              }
-              else
-                curTextFr.contents = curSchüler.name;
+      var curGroups = curPage.groups;
+      for(var groupIndex = 0;groupIndex < curGroups.length;groupIndex++)
+      {
+        var curGroup = curGroups[groupIndex] //current Group
+        var curTextFrames = curGroup.textFrames //textFrames
+        var curRectangles = curGroup.rectangles  //rectangles
+        var groupI = parseInt(curGroup.label.split("%")[1]) + grpUpInd
+        var curSchüler = curClass.people[groupI]
+        for(var ii = 0;ii < curTextFrames.length;ii++)
+        { //current Time Frame
+          var curTextFr = curTextFrames[ii]
+          if(curTextFr.label.toLowerCase() == "name")
+          {
+            if(curSchüler == undefined) {
+              curTextFr.remove(); //if curSchüler doesnt Exist it removes that label.
+              ii--;
+              groupIndex--; //it removes the group once the last element is deleted. if the name wasnt found
+                            //it will probably not exist.thus going back 1 step here.
             }
-            else if(curTextFr.label.toLowerCase() == "saying")
-            {
-              if(curSchüler == undefined) {
-                curTextFr.remove(); //if curSchüler doesnt Exist it removes that label.
-                ii--;
-              }
-              else
-                curTextFr.contents = curSchüler.saying;
-            }
+            else
+              curTextFr.contents = curSchüler.name;
           }
-          for(var ii = 0;ii < curRectangles.length;ii++)
-          { //current Rectangle
-            var curRectangle = curRectangles[ii]
-            if(curRectangle.label.toLowerCase() =="pic")
-            {
-              try {
-                var myFile = new File(curSchüler.pic);
-                fileName = myFile.name;
-                var imageFrage = curRectangle.place(myFile)[0];
-                imageFrage.fit(FitOptions.PROPORTIONALLY)
-              }
-              catch(error)
-              { //if no pic was found and error was called remove pic element.
-                curRectangle.remove();
-                break;
-              }
+          else if(curTextFr.label.toLowerCase() == "saying")
+          {
+            if(curSchüler == undefined) {
+              curTextFr.remove(); //if curSchüler doesnt Exist it removes that label.
+              ii--;
+              //doesnt reduce groupIndex since only name is fix and if it didnt load nothing will.
             }
+            else
+              curTextFr.contents = curSchüler.saying;
           }
         }
-      }
-      else { //when it uses saying%0 and other
-        // -------------------------------------Manual Code-------------------------------------
-        var skipTo = objectAmm * classInd++
-        for(var curElemInd in curElems)
-        {
-          var curElem = curElems[curElemInd] //Current Element
-          var curInd = parseInt(curElem.label.split('%')[1]) + skipTo;
-          var curSchüler = curClass.schülers[curInd]
-          if(curElem instanceof TextFrame) //If selected element is TextFrame [Text]
+        for(var ii = 0;ii < curRectangles.length;ii++)
+        { //current Rectangle
+          var curRectangle = curRectangles[ii]
+          if(curRectangle.label.toLowerCase() =="pic")
           {
-            if(curElem.label.split('%')[0].toLowerCase() =="name")
-            {
-              if (curSchüler == undefined && curElem.isValid){
-                ii--; //Invalid Schüler elements should be removed
-                curElem.remove();
-              }
-              else
-                curElem.contents = curSchüler.name;
+            try {
+              var myFile = new File(curSchüler.pic);
+              fileName = myFile.name;
+              var imageFrage = curRectangle.place(myFile)[0];
+              imageFrage.fit(FitOptions.PROPORTIONALLY)
             }
-            else if(curElem.label.split('%')[0].toLowerCase() == "saying")
-            {
-              if (curSchüler == undefined && curElem.isValid){
-                ii--;//Invalid Schüler elements should be removed
-                curElem.remove();
-              }
-              else
-                curElem.contents = curSchüler.saying;
-            }
-          }
-          if (curElem instanceof Rectangle) //If selected element is Rectangle [Picture]
-          {
-            if(curElem.label.split('%')[0].toLowerCase() =="pic")
-            {
-              try {
-                var myFile = new File(curSchüler.pic);
-                fileName = myFile.name;
-                var imageFrage = curElem.place(myFile)[0];
-                imageFrage.fit(FitOptions.PROPORTIONALLY)
-              }
-              catch(error)
-              {
-                //Invalid Schüler elements should be removed
-                curElem.remove();
-              }
+            catch(error)
+            { //if no pic was found and error was called remove pic element.
+              curRectangle.remove();
+              break; //messy way but dont mind it.
             }
           }
         }
