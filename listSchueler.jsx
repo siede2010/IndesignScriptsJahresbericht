@@ -9,6 +9,7 @@ Uses 3 Things :
   saying.csv [contains a email and their saying]
   picFolder [a folder that contains every portrait]
 */
+var imageTypes = ["png","jpg"] // if a file is found that isnt one of those it isnt seen as an image.
 function GetSubFolders(theFolder) { //if the pictures are within sub folders it should extract those aswell
     var myFileList = theFolder.getFiles();
     for (var i = 0; i < myFileList.length; i++) {
@@ -17,7 +18,11 @@ function GetSubFolders(theFolder) { //if the pictures are within sub folders it 
               GetSubFolders(myFile); // is folder then run this again, with the folder as the host.
          }
          else if (myFile instanceof File) {
-              myPics.push(myFile); //put into list.
+            var curType = myFile.name.split(".")
+            curType = curType[curType.length-1]
+            for(var imI in imageTypes)
+              if (imageTypes[imI] == curType)
+                myPics.push(myFile); //put into list.
          } 
     }
 }
@@ -43,9 +48,12 @@ function innerFlat(ifgroups)
 
 function readSchüler(path)
 {
-   var file = File(path);
-   file.encoding = 'UTF8';
-   if(file.open("r")){
+  if (path instanceof File)
+    var file = path;
+  else
+    var file = File(path);
+  file.encoding = 'UTF8';
+  if(file.open("r")){
        var content = file.read(); file.close;
        try {
            var lines = content.split("\n");
@@ -145,7 +153,10 @@ function readSchüler(path)
 }
 function readSaying(path,schüler)
 {
-   var file = File(path);
+  if (path instanceof File)
+    var file = path;
+  else
+    var file = File(path);
    file.encoding = 'UTF8';
    if(file.open("r")){
        var content = file.read(); file.close;
@@ -162,15 +173,16 @@ function readSaying(path,schüler)
        return null;
    } return null;
 }
+var myPics;
+main(); //so i can use return to stop the code;
+function main() {
 
 var doc = app.activeDocument; // gets the opened active document
 
-var schuelerf = File.openDialog("Please select the Schüler CSV File…", true, false);
-var sayingf = File.openDialog("Please select the Sayings CSV File…", true, false);
-var folder = Folder.selectDialog( "Select a folder" );
-var myPics = [];
-if (folder != null)
-  GetSubFolders(folder);
+var folder = Folder.selectDialog( "Chose the Folder with the Pictures" );
+if (folder == null || folder == undefined) return;
+myPics = [];
+GetSubFolders(folder);
 
 var myDialog = app.dialogs.add({name:"adding Class:"}) // Create a new Dialog box to edit
 with (myDialog) // uses the dialog box as the theoreticaly "this"
@@ -182,33 +194,31 @@ with (myDialog) // uses the dialog box as the theoreticaly "this"
       with(dialogColumns.add())
       {
         staticTexts.add({staticLabel:"Page Number :"});
-        staticTexts.add({staticLabel:"CSV Schüler Path :"});
-        staticTexts.add({staticLabel:"CSV Saying Path :"});
-        staticTexts.add({staticLabel:"Print Student? [False = Print Teachers] :"});
-        staticTexts.add({staticLabel:"File Path : " + (folder + "").split("%20").join(" ")})
-        staticTexts.add({staticLabel: myPics.length + " pictures found"})
+        staticTexts.add({staticLabel:"Pictures found within " + folder.path + "/" + folder.name + " :"});
       } //Reorganized from old style. :>
       with(dialogColumns.add())
       {
         var selectedPage = integerEditboxes.add({editValue:1}); //box that hold the changeable info aka value.
-        var csvSchuelerBox = textEditboxes.add({editContents:schuelerf}); // path to csv file
-        var csvSayingBox = textEditboxes.add({editContents:sayingf}); // path to csv file
-        var isStudentBox = checkboxControls.add({checkedState:true}); //so you can switch between new version and old one.
+        staticTexts.add({staticLabel:myPics.length + ""})
       }
     }
    }
 }
-
 // ----------------------------------------- Start of the Active Script -------------------------------------------
-if (schuelerf != null && sayingf != null) // if it was not set it should not run it.
 if (myDialog.show())
 {
+  var printStudents = true;
+  var schuelerf = File.openDialog("Please select the Schüler CSV File…", true, false);
+  if (schuelerf == null || schuelerf == undefined) return;
+  if (printStudents) {
+    var sayingf = File.openDialog("Please select the Sayings CSV File…", true, false);
+    if (sayingf == null || sayingf == undefined) return;
+  }
   var objectAmm = 0; //how many people can fit in 1 page.
   var pageToDuplicate = doc.pages[selectedPage.editValue-1];
-  var printStudents = isStudentBox.checkedState;
   var allTemplateObjects = pageToDuplicate.allPageItems;
-  var csv = readSchüler(csvSchuelerBox.editContents)
-  readSaying(csvSayingBox.editContents,csv)
+  var csv = readSchüler(schuelerf)
+  readSaying(sayingf,csv)
   var selUnit = printStudents ? csv.unit : csv.abteilung;
   var allClasses = [];
   for(var i in selUnit)
@@ -270,26 +280,33 @@ if (myDialog.show())
         for(var ii = 0;ii < curTextFrames.length;ii++)
         { //current Time Frame
           var curTextFr = curTextFrames[ii]
-          if(curTextFr.label.toLowerCase() == "name")
+          switch(curTextFr.label.toLowerCase())
           {
-            if(curSchüler == undefined) {
-              curTextFr.remove(); //if curSchüler doesnt Exist it removes that label.
-              ii--;
-              groupIndex--; //it removes the group once the last element is deleted. if the name wasnt found
-                            //it will probably not exist.thus going back 1 step here.
-            }
-            else
-              curTextFr.contents = curSchüler.name;
-          }
-          else if(curTextFr.label.toLowerCase() == "saying")
-          {
-            if(curSchüler == undefined) {
-              curTextFr.remove(); //if curSchüler doesnt Exist it removes that label.
-              ii--;
-              //doesnt reduce groupIndex since only name is fix and if it didnt load nothing will.
-            }
-            else
-              curTextFr.contents = curSchüler.saying;
+            case "name":
+              if(curSchüler == undefined) {
+                curTextFr.remove(); //if curSchüler doesnt Exist it removes that label.
+                ii--;
+                groupIndex--; //it removes the group once the last element is deleted. if the name wasnt found
+                              //it will probably not exist.thus going back 1 step here.
+              }
+              else
+                curTextFr.contents = curSchüler.name;
+              break;
+            case "saying":
+            case "abkz":
+              if(curSchüler == undefined) {
+                curTextFr.remove(); //if curSchüler doesnt Exist it removes that label.
+                ii--;
+                //doesnt reduce groupIndex since only name is fix and if it didnt load nothing will.
+              }
+              else
+                if (printStudents)
+                  curTextFr.contents = curSchüler.saying;
+                else
+                  curTextFr.contents = curSchüler.abkz;
+              break;
+            default:
+              break;
           }
         }
         for(var ii = 0;ii < curRectangles.length;ii++)
@@ -315,4 +332,6 @@ if (myDialog.show())
   }
 }else {
     myDialog.destroy();
+}
+
 }
