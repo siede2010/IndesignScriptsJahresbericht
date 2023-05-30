@@ -27,22 +27,14 @@ function GetSubFolders(theFolder) { //if the pictures are within sub folders it 
     }
 }
 var flatGroup = []
-
-function flattenGroups(flgroups)
-{ //flatten's groups to make stuff easier to do in the future.
- flatGroup = []
- innerFlat(flgroups)
- return flatGroup;
-}
-function innerFlat(ifgroups)
+function flattenGroups(ifgroups)
 { //basicaly the same for the folders but it instead does it to groups.
  for(var gr = 0;gr<ifgroups.length;gr++)
  {
-   if (ifgroups[gr] != null)
-     if (ifgroups[gr].groups.length > 0)
-       innerFlat(ifgroups[gr].groups)
-     else
-       flatGroup.push(ifgroups[gr])
+   if (ifgroups[gr] != null && ifgroups[gr] != undefined)
+    flatGroup.push(ifgroups[gr])
+    if (ifgroups[gr].groups.length > 0) 
+      flattenGroups(ifgroups[gr].groups)
  }
 }
 
@@ -115,7 +107,7 @@ function readSchüler(path)
               if (set[cIndex.role] == "student")
               {
                 if (data.unit[set[cIndex.unit]] == null) 
-                  data.unit[set[cIndex.unit]] = {people:[],name:set[cIndex.unit]}
+                  data.unit[set[cIndex.unit]] = {people:[],name:set[cIndex.unit],classPic:""}
                 nData = { //the dataset is saved as nData so it can be put into multible things without having to call the other list
                     email:set[cIndex.email],
                     //unit:set[cIndex.unit], //unused
@@ -130,7 +122,7 @@ function readSchüler(path)
                 data.email[set[cIndex.email]] = nData; 
               } else if (set[cIndex.role] == "teacher") {
                 if (data.abteilung[set[cIndex.unit]] == null) 
-                  data.abteilung[set[cIndex.unit]] = {people:[],name:set[cIndex.unit]}
+                  data.abteilung[set[cIndex.unit]] = {people:[],name:set[cIndex.unit],classPic:""}
                 
                   nData = {
                     email:set[cIndex.email],
@@ -233,12 +225,19 @@ if (myDialog.show())
         var nameCheck = curStud.nachname.toLowerCase() + "_" + curStud.vorname.toLowerCase()
         for(var pic in myPics) // Checks each Picture
         {
-            curPic = myPics[pic]; // checks with the split command if the given string exists within the other string.
+            var curPic = myPics[pic]; // checks with the split command if the given string exists within the other string.
             if(curPic.name.toLowerCase().split(nameCheck).length > 1) {
                 curStud.pic = curPic.path+"/"+curPic.name; //sets the path for itself onto the student obj.
                 break; //no reason to keep looping so breaking it is.
             }
         }
+    }
+    var nameCheck = curClass.name.toLowerCase()
+    for(var pic in myPics)
+    {
+      var curPic = myPics[pic]
+      if (curPic.name.toLowerCase().split(nameCheck).length > 1)
+        curClass.classPic = curPic.path+"/"+curPic.name
     }
   }
   for(var i = 0;i < allTemplateObjects.length;i++) /* Counts the amount of class members within the template page */ 
@@ -261,7 +260,7 @@ if (myDialog.show())
     {
       var grpUpInd = objectAmm * classInd++
       var curPage = cpyPages[curPageIndex]
-
+      var centerList = []
       var curElems = curPage.allPageItems;
       for(var curElemInd = 0;curElemInd<curElems.length;curElemInd++)
       {
@@ -270,66 +269,128 @@ if (myDialog.show())
           if (curElem.label.toLowerCase() == "titel")
             curElem.contents = curClass.name; //Title should be set to classname.
         }
-      }
-      var curGroups = curPage.groups;
-      for(var groupIndex = 0;groupIndex < curGroups.length;groupIndex++)
-      {
-        var curGroup = curGroups[groupIndex] //current Group
-        var curTextFrames = curGroup.textFrames //textFrames
-        var curRectangles = curGroup.rectangles  //rectangles
-        var groupI = parseInt(curGroup.label.split("%")[1]) + grpUpInd
-        var curSchüler = curClass.people[groupI]
-        for(var ii = 0;ii < curTextFrames.length;ii++)
-        { //current Time Frame
-          var curTextFr = curTextFrames[ii]
-          switch(curTextFr.label.toLowerCase())
-          {
-            case "name":
-              if(curSchüler == undefined) {
-                curTextFr.remove(); //if curSchüler doesnt Exist it removes that label.
-                ii--;
-                groupIndex--; //it removes the group once the last element is deleted. if the name wasnt found
-                              //it will probably not exist.thus going back 1 step here.
-              }
-              else
-                curTextFr.contents = curSchüler.name;
-              break;
-            case "saying":
-            case "abkz":
-              if(curSchüler == undefined) {
-                curTextFr.remove(); //if curSchüler doesnt Exist it removes that label.
-                ii--;
-                //doesnt reduce groupIndex since only name is fix and if it didnt load nothing will.
-              }
-              else
-                if (printStudents)
-                  curTextFr.contents = curSchüler.saying;
-                else
-                  curTextFr.contents = curSchüler.abkz;
-              break;
-            default:
-              break;
-          }
-        }
-        for(var ii = 0;ii < curRectangles.length;ii++)
-        { //current Rectangle
-          var curRectangle = curRectangles[ii]
-          if(curRectangle.label.toLowerCase() =="pic")
+        if (curElem instanceof Rectangle) {
+          if (curElem.label.toLowerCase() == "classphoto")
           {
             try {
-              var myFile = new File(curSchüler.pic);
+              var myFile = new File(curClass.classPic);
               fileName = myFile.name;
-              var imageFrage = curRectangle.place(myFile)[0];
+              var imageFrage = curElem.place(myFile)[0];
               imageFrage.fit(FitOptions.PROPORTIONALLY)
             }
-            catch(error)
-            { //if no pic was found and error was called remove pic element.
-              curRectangle.remove();
+            catch(error) { //if no pic was found and error was called remove pic element.
+              curElem.remove();
               break; //messy way but dont mind it.
             }
           }
         }
       }
+      var curGroups = curPage.groups;
+      flatGroup = []
+      flattenGroups(curGroups);
+      for(var groupIndex = 0;groupIndex < flatGroup.length;groupIndex++)
+      {
+        var curGroup = flatGroup[groupIndex] //current Group
+        if (!curGroup.isValid) continue;
+        var curTextFrames = curGroup.textFrames //textFrames
+        var curRectangles = curGroup.rectangles  //rectangles
+        switch (curGroup.label.split("%")[0]) 
+        {
+          case "group":
+            var groupI = parseInt(curGroup.label.split("%")[1]) + grpUpInd
+            var curSchüler = curClass.people[groupI]
+            for(var ii = 0;ii < curTextFrames.length;ii++)
+            { //current Time Frame
+              var curTextFr = curTextFrames[ii]
+              switch(curTextFr.label.toLowerCase())
+              {
+                case "name":
+                  if(curSchüler == undefined) {
+                    curTextFr.remove(); //if curSchüler doesnt Exist it removes that label.
+                    ii--;
+                    groupIndex--; //it removes the group once the last element is deleted. if the name wasnt found
+                                  //it will probably not exist.thus going back 1 step here.
+                  }
+                  else
+                    curTextFr.contents = curSchüler.name;
+                  break;
+                case "saying":
+                case "abkz":
+                  if(curSchüler == undefined) {
+                    curTextFr.remove(); //if curSchüler doesnt Exist it removes that label.
+                    ii--;
+                    //doesnt reduce groupIndex since only name is fix and if it didnt load nothing will.
+                  }
+                  else
+                    if (printStudents)
+                      curTextFr.contents = curSchüler.saying;
+                    else
+                      curTextFr.contents = curSchüler.abkz;
+                  break;
+                default:
+                  break;
+              }
+            }
+            for(var ii = 0;ii < curRectangles.length;ii++)
+            { //current Rectangle
+              var curRectangle = curRectangles[ii]
+              if(curRectangle.label.toLowerCase() =="pic")
+              {
+                try {
+                  var myFile = new File(curSchüler.pic);
+                  fileName = myFile.name;
+                  var imageFrage = curRectangle.place(myFile)[0];
+                  imageFrage.fit(FitOptions.PROPORTIONALLY)
+                }
+                catch(error)
+                { //if no pic was found and error was called remove pic element.
+                  curRectangle.remove();
+                  break; //messy way but dont mind it.
+                }
+              }
+            }
+            break;
+            /*
+          case "center": //Broken, supposed to save geometric bounds to later centralize
+              var bounds = curGroup.geometricBounds;
+              centerList.push({
+                grp:curGroup, //used to get the group later
+                width: bounds[3] - bounds[1], //width
+                height: bounds[2] - bounds[0], //height
+                x: bounds[1],
+                y: bounds[0]
+              })
+            break;
+            */
+          default:
+            break;
+        }
+      }
+      /*
+      for(var gCenI = 0;gCenI < centerList.length;gCenI++)
+      { //after groups had been removed it shouldve been used to center the "center" groups.
+        var cenGrpElm = centerList[gCenI]
+        var cenGrp = cenGrpElm.grp;
+        var curBounds = cenGrp.geometricBounds;
+        var dim = {
+          width : bounds[3] - bounds[1],
+          height: bounds[2] - bounds[0]
+        }
+        var offset = {
+          width : (cenGrpElm.width - dim.width) / 2,
+          height : (cenGrpElm.height - dim.height) / 2
+        }
+        var newPos = {
+          x: cenGrpElm.x+offset.width,
+          y: cenGrpElm.y+offset.height
+        }
+        cenGrp.geometricBounds = [
+          newPos.y,
+          newPos.x,
+          newPos.y+dim.height,
+          newPos.x+dim.width]
+      }
+      */
     }
   }
 }else {
