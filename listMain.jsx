@@ -4,6 +4,7 @@ Label's used :
   Name - Text Frame
   Saying - Text Frame
   Group%0 - 0 represents the index. (given to the group that contains all 3 Frames)
+  Titel - Class Name
 Uses 3 Things :
   peopleet.csv [Contains info about every student & teacher]
   saying.csv [contains a email and their saying]
@@ -19,7 +20,7 @@ function GetSubFolders(theFolder) { //if the pictures are within sub folders it 
          }
          else if (myFile instanceof File) {
             var curType = myFile.name.split(".")
-            curType = curType[curType.length-1]
+            curType = curType[curType.length-1].toLowerCase()
             for(var imI in imageTypes)
               if (imageTypes[imI] == curType)
                 myPics.push(myFile); //put into list.
@@ -143,6 +144,17 @@ function readSchüler(path)
        return data;
    } return null;
 }
+
+function replace(str,a)
+{
+  var repStr = str;
+  for(var Ar in a)
+  {
+    repStr = repStr.split(Ar).join(a[Ar])
+  }
+  return repStr;
+}
+
 function readSaying(path,schüler)
 {
   if (path instanceof File)
@@ -159,7 +171,8 @@ function readSaying(path,schüler)
             var lines = content.split("\n");
             for(var i = 0; i < lines.length; i++){
                 var set = lines[i].split(";");
-                schüler.email[set[0]].saying = set[1] //find the user using the email enum list.
+                if (schüler.email[set[0]] != undefined)
+                  schüler.email[set[0]].saying = set[1] //find the user using the email enum list.
             }
        } catch (error) { alert (error, "ERROR when reading the CSV File Saying. something may be wrong with its content."); }
        return null;
@@ -222,7 +235,8 @@ if (myDialog.show())
     var curClass = selUnit[picI]
     for(var student in curClass.people) {
         var curStud = curClass.people[student] //current Student.
-        var nameCheck = curStud.nachname.toLowerCase() + "_" + curStud.vorname.toLowerCase()
+        var nameCheck = curStud.nachname + "_" + curStud.vorname
+        nameCheck = replace(nameCheck,{"ö":"%C3%B6","ä":"%C3%A4","ü":"%C3%BC"," ":"%20"}).toLowerCase()
         for(var pic in myPics) // Checks each Picture
         {
             var curPic = myPics[pic]; // checks with the split command if the given string exists within the other string.
@@ -236,8 +250,9 @@ if (myDialog.show())
     for(var pic in myPics)
     {
       var curPic = myPics[pic]
-      if (curPic.name.toLowerCase().split(nameCheck).length > 1)
+      if (curPic.name.toLowerCase().split(nameCheck).length > 1) {
         curClass.classPic = curPic.path+"/"+curPic.name
+      }
     }
   }
   for(var i = 0;i < allTemplateObjects.length;i++) /* Counts the amount of class members within the template page */ 
