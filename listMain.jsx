@@ -102,7 +102,7 @@ function readSchüler(path)
            }
            //email;orgUnit;name.given;name.last;role;abbrev;
            for(var i = startIndex; i < lines.length; i++){
-              var set = lines[i].split(";"); //this is basicaly the list of info.
+              var set = lines[i].split("#")[0].split(";"); //this is basicaly the list of info.
               if (set.length <= cIndex.unit) continue;
               var nData = {}
               if (set[cIndex.role] == "student")
@@ -295,7 +295,6 @@ if (myDialog.show())
             }
             catch(error) { //if no pic was found and error was called remove pic element.
               curElem.remove();
-              break; //messy way but dont mind it.
             }
           }
         }
@@ -358,9 +357,9 @@ if (myDialog.show())
                   imageFrage.fit(FitOptions.PROPORTIONALLY)
                 }
                 catch(error)
-                { //if no pic was found and error was called remove pic element.
+                {
                   curRectangle.remove();
-                  break; //messy way but dont mind it.
+                  break;
                 }
               }
             }
