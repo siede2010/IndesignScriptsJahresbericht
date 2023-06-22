@@ -1,29 +1,32 @@
 /*
+  {[Most Up to date Version of the List Script.]}
 Label's used :
   Pic - Photo Frame
   Name - Text Frame
   Saying - Text Frame
   Group%0 - 0 represents the index. (given to the group that contains all 3 Frames)
   Titel - Class Name
+  Classphoto - Picture Frame for Class Photo
 Uses 3 Things :
   peopleet.csv [Contains info about every student & teacher]
   saying.csv [contains a email and their saying]
   picFolder [a folder that contains every portrait]
 */
+var defaultPhotos = [];
 var imageTypes = ["png","jpg"] // if a file is found that isnt one of those it isnt seen as an image.
-function GetSubFolders(theFolder) { //if the pictures are within sub folders it should extract those aswell
+function GetSubFolders(theFolder,list) { //if the pictures are within sub folders it should extract those aswell
     var myFileList = theFolder.getFiles();
     for (var i = 0; i < myFileList.length; i++) {
          var myFile = myFileList[i];
          if (myFile instanceof Folder){
-              GetSubFolders(myFile); // is folder then run this again, with the folder as the host.
+              GetSubFolders(myFile,list); // is folder then run this again, with the folder as the host.
          }
          else if (myFile instanceof File) {
             var curType = myFile.name.split(".")
             curType = curType[curType.length-1].toLowerCase()
             for(var imI in imageTypes)
               if (imageTypes[imI] == curType)
-                myPics.push(myFile); //put into list.
+              list.push(myFile); //put into list.
          } 
     }
 }
@@ -150,8 +153,18 @@ function replace(str,a)
   var repStr = str;
   for(var Ar in a)
   {
-    repStr = repStr.split(Ar).join(a[Ar])
+    if (typeof repStr == "string")
+      repStr = repStr.split(Ar).join(a[Ar])
+    else
+      return str;
   }
+  return repStr;
+}
+
+function replaceStr(str,sL) {
+  var repStr = str;
+  for(var Ar = 0; Ar < sL.length - 1; Ar+=2)
+    repStr = repStr.split(sL[Ar]).join(sL[Ar+1]);
   return repStr;
 }
 
@@ -187,7 +200,7 @@ var doc = app.activeDocument; // gets the opened active document
 var folder = Folder.selectDialog( "Chose the Folder with the Pictures" );
 if (folder == null || folder == undefined) return;
 myPics = [];
-GetSubFolders(folder);
+GetSubFolders(folder,myPics);
 
 var myDialog = app.dialogs.add({name:"adding Class:"}) // Create a new Dialog box to edit
 with (myDialog) // uses the dialog box as the theoreticaly "this"
@@ -201,12 +214,14 @@ with (myDialog) // uses the dialog box as the theoreticaly "this"
         staticTexts.add({staticLabel:"Page Number :"});
         staticTexts.add({staticLabel:"Print Student? [False = Print Teachers] :"});
         staticTexts.add({staticLabel:"Pictures found within " + folder.path + "/" + folder.name + " :"});
+        staticTexts.add({staticLabel:"Phantoms on no photo? "})
       } //Reorganized from old style. :>
       with(dialogColumns.add())
       {
         var selectedPage = integerEditboxes.add({editValue:1}); //box that hold the changeable info aka value.
         var isStudentBox = checkboxControls.add({checkedState:true}); //so you can switch between new version and old one.
         staticTexts.add({staticLabel:myPics.length + ""})
+        var phantomBox = checkboxControls.add({checkedState:false});
       }
     }
    }
@@ -215,17 +230,21 @@ with (myDialog) // uses the dialog box as the theoreticaly "this"
 if (myDialog.show())
 {
   var printStudents = isStudentBox.checkedState;
+  var phantomBool = phantomBox.checkedState;
   var schuelerf = File.openDialog("Please select the Schüler CSV File…", true, false);
   if (schuelerf == null || schuelerf == undefined) return;
   if (printStudents) {
     var sayingf = File.openDialog("Please select the Sayings CSV File…", true, false);
     if (sayingf == null || sayingf == undefined) return;
   }
+
+  if(phantomBool)
+    GetSubFolders(Folder.selectDialog( "Chose the Folder with the Phantoms"),defaultPhotos)
   var objectAmm = 0; //how many people can fit in 1 page.
   var pageToDuplicate = doc.pages[selectedPage.editValue-1];
-  var allTemplateObjects = pageToDuplicate.allPageItems;
-  var csv = readSchüler(schuelerf)
-  readSaying(sayingf,csv)
+  var allTemplateObjects = pageToDuplicate.allPageItems; //saves all TemplateObjects onto a var.
+  var csv = readSchüler(schuelerf) //Reads the Schueler CSV
+  readSaying(sayingf,csv) //Reads the Saying of the CSV and connects it to the csv of Schueler.
   var selUnit = printStudents ? csv.unit : csv.abteilung;
   var allClasses = [];
   for(var i in selUnit)
@@ -235,17 +254,23 @@ if (myDialog.show())
     var curClass = selUnit[picI]
     for(var student in curClass.people) {
         var curStud = curClass.people[student] //current Student.
-        var nameCheck = curStud.nachname + "_" + curStud.vorname
-        nameCheck = replace(nameCheck,{"ö":"%C3%B6","ä":"%C3%A4","ü":"%C3%BC"," ":"%20"}).toLowerCase()
+        var nameCheck = curStud.nachname.toLowerCase() + "-" +curStud.vorname.toLowerCase()
+        nameCheck = replace(nameCheck,{"ö":"%C3%B6","ß":"%E1%BA%9E","ä":"%C3%A4","ü":"%C3%BC"," ":"-","_":"-"})
+        var checks = nameCheck.split("-");
         for(var pic in myPics) // Checks each Picture
         {
             var curPic = myPics[pic]; // checks with the split command if the given string exists within the other string.
-            if(curPic.name.toLowerCase().split(nameCheck).length > 1) {
+            var failed = false;
+            var namecheckLower = replaceStr(curPic.name.toLowerCase(),["%c3%96","%C3%B6",  "%c3%84","%C3%A4",  "%c3%9c","%C3%BC","%c3%b6","%C3%B6","%c3%a4","%C3%A4","%c3%bc","%C3%BC",  "%31"," ",  "%20"," "])
+            for(var ci = 0;ci < checks.length; ci++) //Thing above just turns Big Ö Ä Ü into ö ä ü aswell.
+              if (namecheckLower.split(checks[ci]).length == 1)
+                failed = true;
+            if(!failed) {
                 curStud.pic = curPic.path+"/"+curPic.name; //sets the path for itself onto the student obj.
                 break; //no reason to keep looping so breaking it is.
-            }
+            } //funny how this entire piece of code was made by just me. jet it looks like 10 people worked on it.
         }
-    }
+      }
     var nameCheck = curClass.name.toLowerCase()
     for(var pic in myPics)
     {
@@ -358,7 +383,18 @@ if (myDialog.show())
                 }
                 catch(error)
                 {
-                  curRectangle.remove();
+                  if (phantomBool) {
+                    if (curSchüler == undefined)
+                      curRectangle.remove();
+                    else {
+                      var myFile = new File(defaultPhotos[Math.floor(Math.random()*defaultPhotos.length)]);
+                      fileName = myFile.name;
+                      var imageFrage = curRectangle.place(myFile)[0];
+                      imageFrage.fit(FitOptions.PROPORTIONALLY)
+                    }
+                  }
+                  else
+                    curRectangle.remove();
                   break;
                 }
               }
